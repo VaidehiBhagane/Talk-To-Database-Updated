@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -24,6 +24,8 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
+  Avatar,
+  Badge,
 } from '@mui/material';
 import {
   ArrowBack,
@@ -33,11 +35,14 @@ import {
   Business,
   Send,
   Pending,
+  CameraAlt,
+  Delete,
 } from '@mui/icons-material';
 import { profileAPI } from '../services/api';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
   const [profile, setProfile] = useState(null);
   const [availableBUs, setAvailableBUs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,6 +54,7 @@ const ProfilePage = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
   
   // BU request dialog
   const [requestDialog, setRequestDialog] = useState(false);
@@ -65,6 +71,7 @@ const ProfilePage = () => {
       const response = await profileAPI.get();
       setProfile(response.data.profile);
       setEmail(response.data.profile.email);
+      setProfilePicture(response.data.profile.profile_picture);
     } catch (err) {
       setError('Failed to load profile');
     }
@@ -76,6 +83,76 @@ const ProfilePage = () => {
       setAvailableBUs(response.data.available_business_units || []);
     } catch (err) {
       console.error('Error fetching available BUs:', err);
+    }
+  };
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image size should not exceed 2MB');
+      return;
+    }
+
+    // Convert to base64
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfilePicture(reader.result);
+      handleUpdateProfilePicture(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUpdateProfilePicture = async (base64Image) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await profileAPI.update({ profile_picture: base64Image });
+      setSuccess('Profile picture updated successfully');
+      
+      // Update local storage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.profile_picture = base64Image;
+      localStorage.setItem('user', JSON.stringify(storedUser));
+      
+      fetchProfile();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update profile picture');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      await profileAPI.update({ profile_picture: null });
+      setProfilePicture(null);
+      setSuccess('Profile picture removed successfully');
+      
+      // Update local storage
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.profile_picture = null;
+      localStorage.setItem('user', JSON.stringify(storedUser));
+      
+      fetchProfile();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to remove profile picture');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -178,10 +255,90 @@ const ProfilePage = () => {
           {/* Profile Information */}
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: '#00ff88',
+                  fontWeight: 600
+                }}
+              >
                 <Person /> Profile Information
               </Typography>
               <Divider sx={{ mb: 3 }} />
+
+              {/* Profile Picture */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <Badge
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  badgeContent={
+                    <Box>
+                      <IconButton
+                        sx={{
+                          bgcolor: '#00ff88',
+                          color: '#000',
+                          width: 36,
+                          height: 36,
+                          '&:hover': {
+                            bgcolor: '#00ddff',
+                            boxShadow: '0 0 15px rgba(0, 255, 136, 0.5)',
+                          },
+                          mb: profilePicture ? 0.5 : 0,
+                        }}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <CameraAlt fontSize="small" />
+                      </IconButton>
+                      {profilePicture && (
+                        <IconButton
+                          sx={{
+                            bgcolor: '#ff00ff',
+                            color: '#000',
+                            width: 36,
+                            height: 36,
+                            '&:hover': {
+                              bgcolor: '#ff4444',
+                              boxShadow: '0 0 15px rgba(255, 0, 255, 0.5)',
+                            },
+                          }}
+                          onClick={handleRemoveProfilePicture}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  }
+                >
+                  <Avatar
+                    src={profilePicture}
+                    sx={{
+                      width: 120,
+                      height: 120,
+                      bgcolor: 'transparent',
+                      background: profilePicture ? 'none' : 'linear-gradient(135deg, #00ff88 0%, #00ddff 100%)',
+                      color: '#000',
+                      fontWeight: 700,
+                      fontFamily: 'Orbitron',
+                      fontSize: '3rem',
+                      boxShadow: '0 0 30px rgba(0, 255, 136, 0.5)',
+                      border: '3px solid rgba(0, 255, 136, 0.3)',
+                    }}
+                  >
+                    {!profilePicture && profile.username?.charAt(0).toUpperCase()}
+                  </Avatar>
+                </Badge>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleImageUpload}
+                />
+              </Box>
 
               <Box sx={{ mb: 2 }}>
                 <TextField
@@ -250,7 +407,17 @@ const ProfilePage = () => {
           {/* Change Password */}
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: '#00ff88',
+                  fontWeight: 600
+                }}
+              >
                 <Lock /> Change Password
               </Typography>
               <Divider sx={{ mb: 3 }} />
@@ -301,7 +468,17 @@ const ProfilePage = () => {
           {/* My Business Units */}
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: '#00ff88',
+                  fontWeight: 600
+                }}
+              >
                 <Business /> My Business Units
               </Typography>
               <Divider sx={{ mb: 2 }} />
@@ -309,10 +486,24 @@ const ProfilePage = () => {
               {profile.business_units && profile.business_units.length > 0 ? (
                 <List>
                   {profile.business_units.map((bu) => (
-                    <ListItem key={bu.id} sx={{ bgcolor: '#f9f9f9', mb: 1, borderRadius: 1 }}>
+                    <ListItem 
+                      key={bu.id} 
+                      sx={{ 
+                        bgcolor: 'rgba(0, 255, 136, 0.05)', 
+                        mb: 1, 
+                        borderRadius: 1,
+                        border: '1px solid rgba(0, 255, 136, 0.2)'
+                      }}
+                    >
                       <ListItemText
                         primary={bu.name}
                         secondary={bu.description}
+                        primaryTypographyProps={{ 
+                          sx: { color: '#00ff88', fontWeight: 500 } 
+                        }}
+                        secondaryTypographyProps={{
+                          sx: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }}
                       />
                       <ListItemSecondaryAction>
                         <Chip label="Access Granted" color="success" size="small" />
@@ -330,7 +521,17 @@ const ProfilePage = () => {
           {profile.role !== 'admin' && (
             <Grid item xs={12} md={6}>
               <Paper elevation={3} sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    color: '#00ff88',
+                    fontWeight: 600
+                  }}
+                >
                   <Send /> Request Business Unit Access
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
@@ -338,10 +539,24 @@ const ProfilePage = () => {
                 {availableBUs.length > 0 ? (
                   <List>
                     {availableBUs.map((bu) => (
-                      <ListItem key={bu.id} sx={{ bgcolor: '#f9f9f9', mb: 1, borderRadius: 1 }}>
+                      <ListItem 
+                        key={bu.id} 
+                        sx={{ 
+                          bgcolor: 'rgba(255, 0, 255, 0.05)', 
+                          mb: 1, 
+                          borderRadius: 1,
+                          border: '1px solid rgba(255, 0, 255, 0.2)'
+                        }}
+                      >
                         <ListItemText
                           primary={bu.name}
                           secondary={bu.description}
+                          primaryTypographyProps={{ 
+                            sx: { color: '#ff00ff', fontWeight: 500 } 
+                          }}
+                          secondaryTypographyProps={{
+                            sx: { color: 'rgba(255, 255, 255, 0.7)' }
+                          }}
                         />
                         <ListItemSecondaryAction>
                           {bu.has_pending_request ? (
@@ -374,7 +589,11 @@ const ProfilePage = () => {
                 {/* Pending Requests */}
                 {profile.pending_requests && profile.pending_requests.length > 0 && (
                   <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" gutterBottom>
+                    <Typography 
+                      variant="subtitle2" 
+                      gutterBottom
+                      sx={{ color: '#00ff88', fontWeight: 500 }}
+                    >
                       Pending Requests:
                     </Typography>
                     <List dense>
@@ -383,6 +602,12 @@ const ProfilePage = () => {
                           <ListItemText
                             primary={req.bu_name}
                             secondary={`Requested: ${new Date(req.created_at).toLocaleDateString()}`}
+                            primaryTypographyProps={{
+                              sx: { color: 'rgba(255, 255, 255, 0.9)' }
+                            }}
+                            secondaryTypographyProps={{
+                              sx: { color: 'rgba(255, 255, 255, 0.6)' }
+                            }}
                           />
                           <Chip label="Pending" color="warning" size="small" />
                         </ListItem>

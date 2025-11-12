@@ -179,29 +179,68 @@ const Header = () => {
                 {storedUser.role === 'admin' ? 'Admin Panel' : 'Dashboard'}
               </Button>
 
-              {/* User Menu */}
-              <IconButton
-                onClick={handleMenuOpen}
-                sx={{
+              {/* User Avatar with Username */}
+              <Box 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1.5,
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: 3,
                   border: '2px solid rgba(0, 255, 136, 0.3)',
+                  background: 'rgba(0, 255, 136, 0.05)',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
                     border: '2px solid rgba(0, 255, 136, 0.6)',
-                    boxShadow: '0 0 15px rgba(0, 255, 136, 0.3)',
+                    background: 'rgba(0, 255, 136, 0.1)',
+                    boxShadow: '0 0 20px rgba(0, 255, 136, 0.3)',
                   },
                 }}
+                onClick={handleMenuOpen}
               >
                 <Avatar
+                  src={storedUser.profile_picture}
                   sx={{
+                    width: 40,
+                    height: 40,
                     bgcolor: 'transparent',
-                    background: 'linear-gradient(135deg, #00ff88 0%, #00ddff 100%)',
+                    background: storedUser.profile_picture ? 'none' : 'linear-gradient(135deg, #00ff88 0%, #00ddff 100%)',
                     color: '#000',
                     fontWeight: 700,
                     fontFamily: 'Orbitron',
+                    fontSize: '1.1rem',
+                    boxShadow: '0 0 15px rgba(0, 255, 136, 0.5)',
+                    border: '2px solid rgba(0, 0, 0, 0.2)',
                   }}
                 >
-                  {storedUser.username?.charAt(0).toUpperCase()}
+                  {!storedUser.profile_picture && storedUser.username?.charAt(0).toUpperCase()}
                 </Avatar>
-              </IconButton>
+                <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: '#00ff88', 
+                      fontWeight: 600,
+                      fontFamily: 'Rajdhani',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {storedUser.username}
+                  </Typography>
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    {storedUser.role === 'admin' ? 'Administrator' : 'User'}
+                  </Typography>
+                </Box>
+              </Box>
 
               <Menu
                 anchorEl={anchorEl}

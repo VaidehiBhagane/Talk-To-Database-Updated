@@ -10,6 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default='user', nullable=False)  # 'user' or 'admin'
+    profile_picture = db.Column(db.Text().with_variant(db.Text(length=2**32-1), 'mysql'), nullable=True)  # LONGTEXT for large base64 images
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -31,6 +32,7 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'role': self.role,
+            'profile_picture': self.profile_picture,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
     

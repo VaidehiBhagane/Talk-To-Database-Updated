@@ -223,7 +223,9 @@ const Footer = () => {
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Link
-                href="#"
+                href="/project-proposal.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   color: 'text.secondary',
                   textDecoration: 'none',
@@ -237,7 +239,9 @@ const Footer = () => {
                 Documentation
               </Link>
               <Link
-                href="#"
+                href="https://console.groq.com/keys"
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   color: 'text.secondary',
                   textDecoration: 'none',
@@ -251,7 +255,9 @@ const Footer = () => {
                 API Reference
               </Link>
               <Link
-                href="#"
+                href="/README.md"
+                target="_blank"
+                rel="noopener noreferrer"
                 sx={{
                   color: 'text.secondary',
                   textDecoration: 'none',
@@ -263,20 +269,6 @@ const Footer = () => {
                 }}
               >
                 Tutorials
-              </Link>
-              <Link
-                href="#"
-                sx={{
-                  color: 'text.secondary',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    color: '#00ff88',
-                    textShadow: '0 0 10px rgba(0, 255, 136, 0.5)',
-                  },
-                }}
-              >
-                Support
               </Link>
             </Box>
           </Grid>

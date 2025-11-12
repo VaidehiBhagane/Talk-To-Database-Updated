@@ -42,6 +42,7 @@ def get_profile(current_user):
                 'username': user.username,
                 'email': user.email,
                 'role': user.role,
+                'profile_picture': user.profile_picture,
                 'created_at': user.created_at.isoformat() if user.created_at else None,
                 'business_units': [{'id': bu.id, 'name': bu.name, 'description': bu.description} for bu in business_units if bu],
                 'pending_requests': [req.to_dict() for req in pending_requests]
@@ -61,7 +62,8 @@ def update_profile(current_user):
         {
             "email": "string" (optional),
             "current_password": "string" (required if changing password),
-            "new_password": "string" (optional)
+            "new_password": "string" (optional),
+            "profile_picture": "string" (optional, base64 encoded image)
         }
     """
     try:
@@ -88,6 +90,10 @@ def update_profile(current_user):
                 return jsonify({'error': 'Email already in use'}), 409
             
             user.email = new_email
+        
+        # Update profile picture
+        if 'profile_picture' in data:
+            user.profile_picture = data['profile_picture']
         
         # Update password
         if 'new_password' in data:
