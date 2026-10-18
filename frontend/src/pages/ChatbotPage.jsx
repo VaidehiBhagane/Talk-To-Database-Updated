@@ -13,7 +13,6 @@ import {
   Card,
   CardContent,
   Alert,
-  CircularProgress,
   Table,
   TableBody,
   TableCell,
@@ -25,13 +24,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  InputAdornment,
 } from '@mui/material';
+import { getErrorMessage, isAuthError } from '../services/errorHandler';
+import { TableSkeleton } from '../components/Skeletons';
+import VoiceMicButton from '../components/VoiceMicButton';
 import {
   ArrowBack,
   Send as SendIcon,
   Visibility as ViewIcon,
   BarChart as ChartIcon,
   Download as DownloadIcon,
+  AutoAwesome as SparkleIcon,
+  PictureAsPdf as PdfIcon,  // NEW: Icon for PDF export
 } from '@mui/icons-material';
 import { businessUnitAPI, queryAPI } from '../services/api';
 
@@ -44,6 +49,8 @@ const ChatbotPage = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [viewDataDialog, setViewDataDialog] = useState(false);
+  const [summary, setSummary] = useState('');  // NEW: State for AI summary
+  const [summaryLoading, setSummaryLoading] = useState(false);  // NEW: Loading state for summary
 
   useEffect(() => {
     fetchBusinessUnit();
@@ -54,7 +61,11 @@ const ChatbotPage = () => {
       const response = await businessUnitAPI.getById(buId);
       setBu(response.data.business_unit);
     } catch (err) {
-      setError('Failed to load business unit');
+      const errorMsg = getErrorMessage(err, 'Failed to load business unit');
+      setError(errorMsg);
+      if (isAuthError(err)) {
+        setTimeout(() => navigate('/login'), 2000);
+      }
     }
   };
 
@@ -65,6 +76,7 @@ const ChatbotPage = () => {
     setLoading(true);
     setError('');
     setResult(null);
+    setSummary('');  // NEW: Clear previous summary
 
     try {
       const response = await queryAPI.execute({
@@ -74,10 +86,41 @@ const ChatbotPage = () => {
 
       console.log('Query response:', response.data);
       setResult(response.data);
+      
+      // NEW: Call summarization endpoint (non-blocking)
+      // Call even for empty results to show "No results" message
+      if (response.data.success && response.data.data) {
+        console.log('Calling fetchSummary with', response.data.data.length, 'results');
+        fetchSummary(response.data.data, query.trim());
+      }
     } catch (err) {
-      setError(err.response?.data?.error || 'Query execution failed');
+      const errorMsg = getErrorMessage(err, 'Query execution failed');
+      setError(errorMsg);
+      if (isAuthError(err)) {
+        setTimeout(() => navigate('/login'), 2000);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // NEW: Function to fetch AI summary
+  const fetchSummary = async (results, question) => {
+    setSummaryLoading(true);
+    try {
+      const response = await queryAPI.summarize({
+        results: results,
+        question: question,
+      });
+      
+      if (response.data.success && response.data.summary) {
+        setSummary(response.data.summary);
+      }
+    } catch (err) {
+      // Silently fail - summarization is non-critical
+      console.log('Summary generation failed (non-critical):', err);
+    } finally {
+      setSummaryLoading(false);
     }
   };
 
@@ -117,7 +160,34 @@ const ChatbotPage = () => {
       link.click();
       link.remove();
     } catch (err) {
-      setError('Failed to export data');
+      const errorMsg = getErrorMessage(err, 'Failed to export data');
+      setError(errorMsg);
+    }
+  };
+
+  // NEW: Handle PDF export with AI summary
+  const handleDownloadPDF = async () => {
+    if (!result || !result.data) return;
+
+    try {
+      const response = await queryAPI.exportPDF({
+        results: result.data,
+        summary: summary || 'No summary available',
+        query_text: query,
+        // chart_base64: null, // TODO: Add chart snapshot in future
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${bu?.name}_report.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      const errorMsg = getErrorMessage(err, 'Failed to export PDF');
+      setError(errorMsg);
     }
   };
 
@@ -157,6 +227,16 @@ const ChatbotPage = () => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end" sx={{ alignSelf: 'flex-end', mb: 1 }}>
+                    <VoiceMicButton
+                      onTranscript={(text) => setQuery(text)}
+                      tooltipText="Click to speak your query"
+                    />
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"
@@ -171,16 +251,12 @@ const ChatbotPage = () => {
         </Paper>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
 
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
-          </Box>
-        )}
+        {loading && <TableSkeleton rows={5} columns={5} />}
 
         {result && (
           <>
@@ -239,6 +315,18 @@ const ChatbotPage = () => {
                 >
                   Download Excel
                 </Button>
+                {/* NEW: Export PDF Button */}
+                <Button
+                  variant="contained"
+                  startIcon={<PdfIcon />}
+                  onClick={handleDownloadPDF}
+                  sx={{ 
+                    bgcolor: '#ff0055',
+                    '&:hover': { bgcolor: '#cc0044' }
+                  }}
+                >
+                  Export PDF
+                </Button>
               </Box>
             </Paper>
 
@@ -259,6 +347,35 @@ const ChatbotPage = () => {
                 {result.sql}
               </Box>
             </Paper>
+
+            {/* NEW: AI Summary Card - Shows below the generated SQL */}
+            {(summary || summaryLoading) && (
+              <Card 
+                sx={{ 
+                  mt: 3, 
+                  bgcolor: '#e3f2fd',  // Light blue background
+                  borderLeft: '4px solid #2196f3'  // Blue accent border
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <SparkleIcon sx={{ mr: 1, color: '#1976d2' }} />
+                    <Typography variant="h6" sx={{ color: '#1565c0' }}>
+                      AI Summary
+                    </Typography>
+                  </Box>
+                  {summaryLoading ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      ✨ Generating AI insights...
+                    </Typography>
+                  ) : (
+                    <Typography variant="body1" sx={{ color: 'text.primary', lineHeight: 1.6 }}>
+                      {summary}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
 

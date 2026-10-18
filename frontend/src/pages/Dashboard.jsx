@@ -9,18 +9,24 @@ import {
   CardContent,
   CardActionArea,
   Avatar,
-  CircularProgress,
   Chip,
+  Button,
+  CardActions,
+  Alert,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
+  Assessment as AssessmentIcon,  // NEW: Icon for EDA
 } from '@mui/icons-material';
 import { businessUnitAPI } from '../services/api';
+import { getErrorMessage, isAuthError } from '../services/errorHandler';
+import { CardGridSkeleton } from '../components/Skeletons';
 
 const Dashboard = ({ user }) => {
   const navigate = useNavigate();
   const [businessUnits, setBusinessUnits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchBusinessUnits();
@@ -31,7 +37,11 @@ const Dashboard = ({ user }) => {
       const response = await businessUnitAPI.getAll();
       setBusinessUnits(response.data.business_units);
     } catch (err) {
-      console.error('Error fetching business units:', err);
+      const errorMsg = getErrorMessage(err, 'Failed to load business units');
+      setError(errorMsg);
+      if (isAuthError(err)) {
+        setTimeout(() => navigate('/login'), 2000);
+      }
     } finally {
       setLoading(false);
     }
@@ -59,10 +69,14 @@ const Dashboard = ({ user }) => {
           )}
         </Box>
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-            <CircularProgress />
-          </Box>
+          <CardGridSkeleton count={3} />
         ) : businessUnits.length === 0 ? (
           <Card>
             <CardContent>
@@ -91,7 +105,7 @@ const Dashboard = ({ user }) => {
                 >
                   <CardActionArea
                     onClick={() => navigate(`/chatbot/${bu.id}`)}
-                    sx={{ height: '100%', p: 2 }}
+                    sx={{ p: 2 }}
                   >
                     <CardContent>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -114,6 +128,21 @@ const Dashboard = ({ user }) => {
                       </Typography>
                     </CardContent>
                   </CardActionArea>
+                  {/* NEW: EDA Button */}
+                  <CardActions sx={{ justifyContent: 'center', pb: 2 }}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<AssessmentIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/eda/${bu.id}`);
+                      }}
+                      sx={{ width: '90%' }}
+                    >
+                      Analyze Table
+                    </Button>
+                  </CardActions>
                 </Card>
               </Grid>
             ))}

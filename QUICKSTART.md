@@ -6,13 +6,13 @@
 1. Open MySQL Workbench
 2. Run the SQL script:
    ```sql
-   SOURCE C:/Users/nikhil.rokade_jadegl/Documents/TTD/database/schema.sql
+   SOURCE D:\Talk-to-Database\Talk-to-Database\database\schema.sql
    ```
 
 ### Step 2: Backend Setup
 ```powershell
 # Navigate to backend
-cd "C:\Users\nikhil.rokade_jadegl\Documents\TTD\backend"
+cd "D:\Talk-to-Database\Talk-to-Database\backend"
 
 # Create virtual environment
 python -m venv venv
@@ -28,7 +28,7 @@ Copy-Item .env.example .env
 
 # IMPORTANT: Edit .env file with your credentials
 # - Set your MySQL password
-# - Add your OpenAI API key from https://platform.openai.com/api-keys
+# - Add your Groq API key from https://console.groq.com/keys
 
 # Run the application
 python app.py
@@ -40,7 +40,7 @@ Backend will run on: http://localhost:5000
 Open a new PowerShell window:
 ```powershell
 # Navigate to frontend
-cd "C:\Users\nikhil.rokade_jadegl\Documents\TTD\frontend"
+cd "D:\Talk-to-Database\Talk-to-Database\frontend"
 
 # Install dependencies
 npm install
@@ -69,12 +69,12 @@ Frontend will run on: http://localhost:3000
 - [ ] Python 3.12 installed
 - [ ] Node.js 18+ installed
 - [ ] MySQL 8.0+ installed and running
-- [ ] OpenAI API key
+- [ ] Groq API key
 - [ ] Git (optional, for version control)
 
-## 🔑 Getting OpenAI API Key
+## 🔑 Getting Groq API Key
 
-1. Visit https://platform.openai.com/api-keys
+1. Visit https://console.groq.com/keys
 2. Sign up or login
 3. Go to API Keys section
 4. Create new secret key
@@ -90,7 +90,7 @@ DB_USER=root
 DB_PASSWORD=YOUR_MYSQL_PASSWORD
 DB_NAME=talk_to_database
 
-OPENAI_API_KEY=YOUR_OPENAI_API_KEY
+GROQ_API_KEY=YOUR_GROQ_API_KEY
 ```
 
 ## ⚠️ Common Issues
@@ -149,4 +149,4 @@ OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 
 ---
 
-**Happy Querying! 🎉**
+

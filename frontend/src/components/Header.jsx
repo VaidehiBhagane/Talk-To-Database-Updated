@@ -11,6 +11,7 @@ import {
   MenuItem,
   Box,
   Container,
+  Tooltip,
 } from '@mui/material';
 import {
   AdminPanelSettings as AdminIcon,
@@ -19,9 +20,11 @@ import {
   AccountCircle as AccountCircleIcon,
   Home as HomeIcon,
   Dashboard as DashboardIcon,
+  Brightness4 as DarkModeIcon,  // NEW: Dark mode icon
+  Brightness7 as LightModeIcon,  // NEW: Light mode icon
 } from '@mui/icons-material';
 
-const Header = () => {
+const Header = ({ toggleTheme, themeMode }) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
   
@@ -163,6 +166,25 @@ const Header = () => {
             </Box>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* NEW: Theme Toggle Button */}
+              <Tooltip title={themeMode === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+                <IconButton
+                  onClick={toggleTheme}
+                  color="inherit"
+                  sx={{
+                    border: '2px solid rgba(0, 255, 136, 0.3)',
+                    borderRadius: 2,
+                    '&:hover': {
+                      border: '2px solid rgba(0, 255, 136, 0.6)',
+                      background: 'rgba(0, 255, 136, 0.1)',
+                      boxShadow: '0 0 15px rgba(0, 255, 136, 0.3)',
+                    },
+                  }}
+                >
+                  {themeMode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+                </IconButton>
+              </Tooltip>
+
               {/* Dashboard Button */}
               <Button
                 color="inherit"

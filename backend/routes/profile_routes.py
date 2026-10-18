@@ -3,7 +3,10 @@ from models import db
 from models.user import User
 from models.business_unit import BusinessUnit, UserBUAccess
 from models.notification import Notification, AccessRequest
+from models.query_log import QueryLog  # NEW: Import QueryLog
 from utils.jwt_utils import token_required
+from datetime import datetime, timedelta  # NEW: Import for date calculations
+from sqlalchemy import func  # NEW: Import for aggregations
 import re
 
 profile_bp = Blueprint('profile', __name__, url_prefix='/api/profile')
@@ -242,3 +245,79 @@ def request_bu_access(current_user):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# NEW ENDPOINT: Enhancement #5 - Get User Query Statistics
+@profile_bp.route('/statistics', methods=['GET'])
+@token_required
+def get_user_statistics(current_user):
+    """
+    Get query statistics for the current user
+    
+    Returns:
+        {
+            "total_queries": integer,
+            "queries_per_day": [
+                {"date": "YYYY-MM-DD", "count": integer},
+                ...
+            ],
+            "queries_by_status": {
+                "success": integer,
+                "error": integer
+            }
+        }
+    """
+    try:
+        user_id = current_user['user_id']
+        
+        # Total queries
+        total_queries = QueryLog.query.filter_by(user_id=user_id).count()
+        
+        # Queries per day for last 7 days
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        
+        # Query for daily counts
+        daily_query = db.session.query(
+            func.date(QueryLog.timestamp).label('date'),
+            func.count(QueryLog.id).label('count')
+        ).filter(
+            QueryLog.user_id == user_id,
+            QueryLog.timestamp >= seven_days_ago
+        ).group_by(
+            func.date(QueryLog.timestamp)
+        ).order_by(
+            func.date(QueryLog.timestamp)
+        ).all()
+        
+        # Create a dictionary for all 7 days (including days with 0 queries)
+        queries_per_day = []
+        for i in range(7):
+            date = (datetime.now() - timedelta(days=6-i)).date()
+            count = 0
+            
+            # Find count for this date
+            for row in daily_query:
+                if row.date == date:
+                    count = row.count
+                    break
+            
+            queries_per_day.append({
+                'date': date.isoformat(),
+                'count': count
+            })
+        
+        # Queries by status
+        success_count = QueryLog.query.filter_by(user_id=user_id, status='success').count()
+        error_count = QueryLog.query.filter_by(user_id=user_id, status='error').count()
+        
+        return jsonify({
+            'total_queries': total_queries,
+            'queries_per_day': queries_per_day,
+            'queries_by_status': {
+                'success': success_count,
+                'error': error_count
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+

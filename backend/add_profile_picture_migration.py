@@ -1,62 +1,49 @@
 """
-Migration script to add profile_picture column to users table
+Migration script to add profile_picture column
 """
-import pymysql
+import sys
 import os
-from dotenv import load_dotenv
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-load_dotenv()
+from flask import Flask
+from config import config
+from models import db
 
-# Database configuration
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = int(os.getenv('DB_PORT', 3306))
-DB_USER = os.getenv('DB_USER', 'root')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-DB_NAME = os.getenv('DB_NAME', 'talk_to_database')
+def create_app():
+    """Create Flask app"""
+    app = Flask(__name__)
+    app.config.from_object(config['default'])
+    db.init_app(app)
+    return app
 
-def run_migration():
+def add_profile_picture():
     """Add profile_picture column to users table"""
-    try:
-        # Connect to database
-        connection = pymysql.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        
-        cursor = connection.cursor()
-        
-        # Check if column already exists
-        cursor.execute("""
-            SELECT COUNT(*) 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = %s 
-            AND TABLE_NAME = 'users' 
-            AND COLUMN_NAME = 'profile_picture'
-        """, (DB_NAME,))
-        
-        exists = cursor.fetchone()[0]
-        
-        if exists:
-            print('✓ Profile picture column already exists')
-        else:
-            # Add the column
-            cursor.execute("""
-                ALTER TABLE users 
-                ADD COLUMN profile_picture TEXT NULL 
-                AFTER role
-            """)
-            connection.commit()
-            print('✓ Profile picture column added successfully')
-        
-        cursor.close()
-        connection.close()
-        
-    except Exception as e:
-        print(f'✗ Migration failed: {str(e)}')
-        raise
+    app = create_app()
+    
+    with app.app_context():
+        try:
+            # Check if column exists
+            result = db.session.execute(
+                "SHOW COLUMNS FROM users LIKE 'profile_picture'"
+            )
+            
+            if result.fetchone():
+                print("✓ profile_picture column already exists")
+            else:
+                # Add column
+                db.session.execute(
+                    "ALTER TABLE users ADD COLUMN profile_picture LONGTEXT NULL"
+                )
+                db.session.commit()
+                print("✓ Successfully added profile_picture column")
+                
+        except Exception as e:
+            print(f"✗ Error: {str(e)}")
+            db.session.rollback()
 
 if __name__ == '__main__':
-    run_migration()
+    print("=" * 60)
+    print("Add Profile Picture Column Migration")
+    print("=" * 60)
+    add_profile_picture()
+    print("=" * 60)

@@ -2,7 +2,7 @@
 
 ## ✅ Project Status: COMPLETE
 
-All components of the AI-powered multi-department data query platform have been successfully implemented using OpenAI GPT-4.
+All components of the AI-powered multi-department data query platform have been successfully implemented using Groq Llama 3.3.
 
 ## 📦 What Has Been Built
 
@@ -26,7 +26,7 @@ All components of the AI-powered multi-department data query platform have been 
 - `routes/admin_routes.py` - Admin analytics and user management
 
 #### Services
-- `services/ai_sql_service.py` - OpenAI GPT-4 integration for text-to-SQL
+- `services/ai_sql_service.py` - Groq Llama 3.3 integration for text-to-SQL
 - `services/visualization_service.py` - Plotly chart generation (bar, line, pie, scatter)
 
 #### Utilities
@@ -88,7 +88,7 @@ All components of the AI-powered multi-department data query platform have been 
 ## 🎯 Key Features Implemented
 
 ### Natural Language Processing
-- OpenAI GPT-4 Turbo API integration
+- Groq Llama 3.3 70B API integration
 - Context-aware SQL generation
 - Schema information injection
 - SQL validation and security checks
@@ -140,21 +140,21 @@ SOURCE C:/Users/nikhil.rokade_jadegl/Documents/TTD/database/schema.sql
 
 ### 2. Backend Setup
 ```powershell
-cd "C:\Users\nikhil.rokade_jadegl\Documents\TTD\backend"
+cd "D:\Talk-to-Database\Talk-to-Database\backend"
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
 
 # Copy and edit .env file
 Copy-Item .env.example .env
-# Add your MySQL password and OpenAI API key
+# Add your MySQL password and Groq API key
 
 python app.py
 ```
 
 ### 3. Frontend Setup
 ```powershell
-cd "C:\Users\nikhil.rokade_jadegl\Documents\TTD\frontend"
+cd "D:\Talk-to-Database\Talk-to-Database\frontend"
 npm install
 npm run dev
 ```
@@ -183,7 +183,7 @@ npm run dev
 - ✅ Dynamic chart rendering
 
 ### Integration
-- ✅ OpenAI GPT-4 API integration
+- ✅ Groq Llama 3.3 API integration
 - ✅ MySQL database connectivity
 - ✅ CORS configuration
 - ✅ Token-based authentication flow
@@ -210,7 +210,7 @@ npm run dev
 ## 🎉 Success Criteria Met
 
 ✅ Full-stack application with React + Flask + MySQL
-✅ OpenAI GPT-4 integration for text-to-SQL
+✅ Groq Llama 3.3 integration for text-to-SQL
 ✅ JWT authentication and role-based access
 ✅ Multi-department data isolation
 ✅ Natural language query interface
@@ -234,7 +234,7 @@ npm run dev
 The "Talk to Database" application is now fully implemented and ready for:
 1. Local development and testing
 2. Production deployment to Vercel (frontend) and Render/Railway (backend)
-3. Integration with your OpenAI API key
+3. Integration with your Groq API key
 4. Customization for your specific business needs
 
-All requirements from the megaprompt have been successfully delivered! 🎊
+

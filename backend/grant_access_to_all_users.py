@@ -1,63 +1,62 @@
 """
-Grant Business Unit Access to All Users
-This script grants access to all business units for all existing users
+Script to grant all users access to all business units
 """
-from app import create_app
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from flask import Flask
+from config import config
 from models import db
 from models.user import User
 from models.business_unit import BusinessUnit, UserBUAccess
 
+def create_app():
+    """Create Flask app"""
+    app = Flask(__name__)
+    app.config.from_object(config['default'])
+    db.init_app(app)
+    return app
+
 def grant_access_to_all():
-    """Grant all BU access to all users"""
+    """Grant all users access to all business units"""
     app = create_app()
     
     with app.app_context():
         try:
-            # Get all users (excluding admin)
-            users = User.query.filter_by(role='user').all()
+            users = User.query.all()
+            bus = BusinessUnit.query.all()
             
-            # Get all business units
-            business_units = BusinessUnit.query.all()
+            print(f"Found {len(users)} users and {len(bus)} business units")
             
-            if not business_units:
-                print("❌ No business units found in database")
-                return
-            
-            print(f"📊 Found {len(users)} users and {len(business_units)} business units")
-            print("\nGranting access...\n")
-            
+            granted_count = 0
             for user in users:
-                print(f"👤 User: {user.username} ({user.email})")
-                
-                for bu in business_units:
+                for bu in bus:
                     # Check if access already exists
-                    existing_access = UserBUAccess.query.filter_by(
+                    existing = UserBUAccess.query.filter_by(
                         user_id=user.id,
                         bu_id=bu.id
                     ).first()
                     
-                    if existing_access:
-                        print(f"   ✓ Already has access to: {bu.name}")
-                    else:
-                        # Grant access
-                        access = UserBUAccess(user_id=user.id, bu_id=bu.id)
+                    if not existing:
+                        access = UserBUAccess(
+                            user_id=user.id,
+                            bu_id=bu.id
+                        )
                         db.session.add(access)
-                        print(f"   ✅ Granted access to: {bu.name}")
-                
-                print()
+                        granted_count += 1
+                        print(f"  Granted: {user.username} -> {bu.name}")
             
-            # Commit all changes
             db.session.commit()
-            
-            print("✅ Successfully granted access to all users!")
-            
-            # Summary
-            total_access = UserBUAccess.query.count()
-            print(f"\n📈 Total access records: {total_access}")
+            print(f"\n✓ Successfully granted {granted_count} new access permissions")
             
         except Exception as e:
+            print(f"✗ Error: {str(e)}")
             db.session.rollback()
-            print(f"❌ Error: {str(e)}")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    print("=" * 60)
+    print("Grant Access to All Users Script")
+    print("=" * 60)
     grant_access_to_all()
+    print("=" * 60)

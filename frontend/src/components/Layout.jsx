@@ -3,7 +3,7 @@ import { Box } from '@mui/material';
 import Header from './Header';
 import Footer from './Footer';
 
-const Layout = ({ children, hideHeaderFooter = false }) => {
+const Layout = ({ children, hideHeaderFooter = false, toggleTheme, themeMode }) => {
   if (hideHeaderFooter) {
     return <>{children}</>;
   }
@@ -16,7 +16,7 @@ const Layout = ({ children, hideHeaderFooter = false }) => {
         minHeight: '100vh',
       }}
     >
-      <Header />
+      <Header toggleTheme={toggleTheme} themeMode={themeMode} />
       <Box
         component="main"
         sx={{

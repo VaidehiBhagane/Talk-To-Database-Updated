@@ -5,6 +5,9 @@ from models.query_log import QueryLog
 from utils.jwt_utils import token_required
 from services.ai_sql_service import ai_sql_service
 from services.visualization_service import visualization_service
+from services.summarization_service import summarization_service
+from services.eda_service import eda_service
+from services.pdf_report_service import pdf_report_service  # NEW: Import PDF service
 from utils.db_connect import execute_query
 import time
 import pandas as pd
@@ -336,3 +339,193 @@ def get_bu_schema(current_user, bu_id):
         
     except Exception as e:
         return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# NEW ENDPOINT: Enhancement #1 - Natural Language Result Summarization
+@query_bp.route('/summarize', methods=['POST'])
+@token_required
+def summarize_results(current_user):
+    """
+    Generate a plain English summary of query results using Claude Sonnet
+    
+    Expected JSON:
+        {
+            "results": [query result rows],
+            "question": "user's original natural language question"
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "summary": "plain English insight"
+        }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'results' not in data or 'question' not in data:
+            return jsonify({'error': 'Missing required fields: results and question'}), 400
+        
+        results = data['results']
+        question = data['question']
+        
+        # Generate summary using Claude
+        summary_result = summarization_service.generate_summary(results, question)
+        
+        if not summary_result['success']:
+            # Non-blocking: Return a graceful fallback message instead of error
+            return jsonify({
+                'success': True,
+                'summary': 'Summary unavailable at this time.',
+                'note': summary_result.get('error', 'Summarization service unavailable')
+            }), 200
+        
+        return jsonify(summary_result), 200
+        
+    except Exception as e:
+        # Non-blocking: Return graceful fallback on any error
+        return jsonify({
+            'success': True,
+            'summary': 'Summary unavailable at this time.',
+            'note': f'Error: {str(e)}'
+        }), 200
+
+# NEW ENDPOINT: Enhancement #2 - Automated EDA with Anomaly Detection
+@query_bp.route('/eda', methods=['POST'])
+@token_required
+def perform_eda(current_user):
+    """
+    Perform Exploratory Data Analysis on a business unit's data
+    
+    Expected JSON:
+        {
+            "business_unit_id": integer
+        }
+    
+    Returns:
+        {
+            "success": true,
+            "stats": {...},
+            "anomalies": [...],
+            "summary": "AI interpretation"
+        }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'business_unit_id' not in data:
+            return jsonify({'error': 'Missing required field: business_unit_id'}), 400
+        
+        bu_id = data['business_unit_id']
+        user_id = current_user['user_id']
+        role = current_user['role']
+        
+        # Validate business unit
+        bu = BusinessUnit.query.get(bu_id)
+        if not bu:
+            return jsonify({'error': 'Business unit not found'}), 404
+        
+        # Check access
+        if role != 'admin':
+            access = UserBUAccess.query.filter_by(user_id=user_id, bu_id=bu_id).first()
+            if not access:
+                return jsonify({'error': 'Access denied to this business unit'}), 403
+        
+        # Get the first table in the schema
+        schema_query = f"""
+        SELECT TABLE_NAME 
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_SCHEMA = '{bu.schema_name}'
+        AND TABLE_TYPE = 'BASE TABLE'
+        LIMIT 1
+        """
+        
+        tables = execute_query(schema_query)
+        
+        if not tables or len(tables) == 0:
+            return jsonify({'error': 'No tables found in this business unit'}), 404
+        
+        table_name = tables[0]['TABLE_NAME']
+        
+        # Fetch up to 1000 rows for analysis
+        data_query = f"SELECT * FROM {bu.schema_name}.{table_name} LIMIT 1000"
+        
+        try:
+            results = execute_query(data_query, schema=bu.schema_name)
+            
+            if not results:
+                return jsonify({
+                    'success': True,
+                    'stats': {'row_count': 0},
+                    'anomalies': [],
+                    'summary': 'No data found in the table.',
+                    'table_name': table_name
+                }), 200
+            
+            # Perform EDA
+            eda_result = eda_service.analyze_data(results, bu.name)
+            
+            if not eda_result['success']:
+                return jsonify({'error': eda_result['error']}), 500
+            
+            # Add table name to response
+            eda_result['table_name'] = table_name
+            
+            return jsonify(eda_result), 200
+            
+        except Exception as e:
+            return jsonify({'error': f'Failed to fetch data: {str(e)}'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+# NEW ENDPOINT: Enhancement #3 - PDF Report Export with AI Insights
+@query_bp.route('/export-pdf', methods=['POST'])
+@token_required
+def export_pdf(current_user):
+    """
+    Export query results as a formatted PDF report
+    
+    Expected JSON:
+        {
+            "results": [query result rows],
+            "summary": "AI summary text (optional)",
+            "chart_base64": "base64 image string (optional)",
+            "query_text": "original query text (optional)"
+        }
+    
+    Returns:
+        PDF file download
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'results' not in data:
+            return jsonify({'error': 'Missing required field: results'}), 400
+        
+        results = data['results']
+        summary = data.get('summary', None)
+        chart_base64 = data.get('chart_base64', None)
+        query_text = data.get('query_text', None)
+        
+        # Generate PDF
+        pdf_buffer = pdf_report_service.generate_pdf(
+            results=results,
+            summary=summary,
+            chart_base64=chart_base64,
+            query_text=query_text
+        )
+        
+        # Generate filename with timestamp
+        filename = f'query_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        
+        return send_file(
+            pdf_buffer,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': f'PDF export failed: {str(e)}'}), 500
+
+

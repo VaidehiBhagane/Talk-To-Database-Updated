@@ -5,7 +5,7 @@ A full-stack application that enables non-technical users to query, visualize, a
 ## 🚀 Features
 
 - **Natural Language Queries**: Ask questions in plain English, no SQL knowledge required
-- **AI-Powered SQL Generation**: OpenAI GPT-4 converts natural language to optimized SQL queries
+- **AI-Powered SQL Generation**: Groq Llama 3.3 converts natural language to optimized SQL queries
 - **Multi-Department Support**: Isolated data access per business unit
 - **Interactive Visualizations**: PowerBI-like charts and graphs using Plotly
 - **Data Export**: Download results as CSV or Excel files
@@ -18,7 +18,7 @@ A full-stack application that enables non-technical users to query, visualize, a
 ### Backend
 - **Framework**: Flask (Python 3.12)
 - **Database**: MySQL
-- **AI Engine**: OpenAI GPT-4 Turbo
+- **AI Engine**: Groq Llama 3.3 70B
 - **Authentication**: JWT (PyJWT)
 - **ORM**: SQLAlchemy
 - **Visualization**: Plotly
@@ -51,7 +51,7 @@ TTD/
 │   │   ├── query_routes.py    # Query execution endpoints
 │   │   └── admin_routes.py    # Admin endpoints
 	│   ├── services/
-	│   │   ├── ai_sql_service.py  # OpenAI integration
+	│   │   ├── ai_sql_service.py  # Groq integration
 	│   │   └── visualization_service.py  # Chart generation
 │   └── utils/
 │       ├── db_connect.py      # Database connection
@@ -83,7 +83,7 @@ TTD/
 - Python 3.12+
 - Node.js 18+
 - MySQL 8.0+
-- OpenAI API Key
+- Groq API Key
 
 ### Backend Setup
 
@@ -160,8 +160,8 @@ DB_NAME=talk_to_database
 # JWT
 JWT_SECRET_KEY=your_super_secret_jwt_key
 
-# OpenAI API
-OPENAI_API_KEY=your_openai_api_key
+# Groq API
+GROQ_API_KEY=your_groq_api_key
 
 # Flask
 FLASK_ENV=development

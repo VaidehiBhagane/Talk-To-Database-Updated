@@ -63,6 +63,9 @@ export const queryAPI = {
   export: (data) => api.post('/api/query/export', data, { responseType: 'blob' }),
   getHistory: (params) => api.get('/api/query/history', { params }),
   getSchema: (buId) => api.get(`/api/query/schema/${buId}`),
+  summarize: (data) => api.post('/api/query/summarize', data),
+  performEDA: (data) => api.post('/api/query/eda', data),
+  exportPDF: (data) => api.post('/api/query/export-pdf', data, { responseType: 'blob' }),  // NEW: PDF export
 };
 
 // Admin APIs
@@ -93,6 +96,7 @@ export const profileAPI = {
   update: (data) => api.put('/api/profile/', data),
   getAvailableBusinessUnits: () => api.get('/api/profile/available-business-units'),
   requestAccess: (data) => api.post('/api/profile/request-access', data),
+  getStatistics: () => api.get('/api/profile/statistics'),  // NEW: Statistics endpoint
 };
 
 export default api;

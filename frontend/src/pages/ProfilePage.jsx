@@ -37,8 +37,13 @@ import {
   Pending,
   CameraAlt,
   Delete,
+  QueryStats,  // NEW: Icon for statistics
+  TrendingUp,  // NEW: Icon for trends
 } from '@mui/icons-material';
 import { profileAPI } from '../services/api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';  // NEW: Recharts
+import { getErrorMessage, isAuthError } from '../services/errorHandler';
+import { StatCardsSkeleton, ChartSkeleton } from '../components/Skeletons';
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -48,6 +53,10 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // NEW: Statistics state
+  const [statistics, setStatistics] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
   
   // Edit profile state
   const [email, setEmail] = useState('');
@@ -64,6 +73,7 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile();
     fetchAvailableBUs();
+    fetchStatistics();  // NEW: Fetch statistics
   }, []);
 
   const fetchProfile = async () => {
@@ -73,7 +83,11 @@ const ProfilePage = () => {
       setEmail(response.data.profile.email);
       setProfilePicture(response.data.profile.profile_picture);
     } catch (err) {
-      setError('Failed to load profile');
+      const errorMsg = getErrorMessage(err, 'Failed to load profile');
+      setError(errorMsg);
+      if (isAuthError(err)) {
+        setTimeout(() => navigate('/login'), 2000);
+      }
     }
   };
 
@@ -83,6 +97,21 @@ const ProfilePage = () => {
       setAvailableBUs(response.data.available_business_units || []);
     } catch (err) {
       console.error('Error fetching available BUs:', err);
+      // Non-critical - don't show error to user
+    }
+  };
+
+  // NEW: Fetch statistics function
+  const fetchStatistics = async () => {
+    setStatsLoading(true);
+    try {
+      const response = await profileAPI.getStatistics();
+      setStatistics(response.data);
+    } catch (err) {
+      console.error('Error fetching statistics:', err);
+      // Non-critical - statistics section will show gracefully
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -127,7 +156,8 @@ const ProfilePage = () => {
       
       fetchProfile();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update profile picture');
+      const errorMsg = getErrorMessage(err, 'Failed to update profile picture');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -150,7 +180,8 @@ const ProfilePage = () => {
       
       fetchProfile();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to remove profile picture');
+      const errorMsg = getErrorMessage(err, 'Failed to remove profile picture');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -182,7 +213,8 @@ const ProfilePage = () => {
       setConfirmPassword('');
       fetchProfile();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update profile');
+      const errorMsg = getErrorMessage(err, 'Failed to update profile');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -209,7 +241,8 @@ const ProfilePage = () => {
       fetchProfile();
       fetchAvailableBUs();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to send request');
+      const errorMsg = getErrorMessage(err, 'Failed to send request');
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -462,6 +495,115 @@ const ProfilePage = () => {
               >
                 Change Password
               </Button>
+            </Paper>
+          </Grid>
+
+          {/* Query Statistics Section */}
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography 
+                variant="h6" 
+                gutterBottom 
+                sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1,
+                  color: '#00ff88',
+                  fontWeight: 600
+                }}
+              >
+                <QueryStats /> Query Statistics
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              {statsLoading ? (
+                <>
+                  <StatCardsSkeleton />
+                  <ChartSkeleton height={300} />
+                </>
+              ) : statistics ? (
+                <>
+                  {/* Statistics Cards */}
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid item xs={12} sm={4}>
+                      <Card sx={{ bgcolor: 'rgba(0, 255, 136, 0.1)', border: '1px solid rgba(0, 255, 136, 0.3)' }}>
+                        <CardContent>
+                          <Typography variant="h4" sx={{ color: '#00ff88', fontWeight: 700 }}>
+                            {statistics.total_queries}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Total Queries
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Card sx={{ bgcolor: 'rgba(0, 221, 255, 0.1)', border: '1px solid rgba(0, 221, 255, 0.3)' }}>
+                        <CardContent>
+                          <Typography variant="h4" sx={{ color: '#00ddff', fontWeight: 700 }}>
+                            {statistics.queries_by_status?.success || 0}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Successful Queries
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <Card sx={{ bgcolor: 'rgba(255, 0, 85, 0.1)', border: '1px solid rgba(255, 0, 85, 0.3)' }}>
+                        <CardContent>
+                          <Typography variant="h4" sx={{ color: '#ff0055', fontWeight: 700 }}>
+                            {statistics.queries_by_status?.error || 0}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            Failed Queries
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+
+                  {/* Query Activity Chart */}
+                  <Box sx={{ mt: 3 }}>
+                    <Typography 
+                      variant="subtitle1" 
+                      gutterBottom 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: '#00ff88',
+                        fontWeight: 500
+                      }}
+                    >
+                      <TrendingUp /> Query Activity (Last 7 Days)
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={statistics.queries_per_day}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="rgba(255, 255, 255, 0.5)"
+                          tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis stroke="rgba(255, 255, 255, 0.5)" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1a1a1a', 
+                            border: '1px solid rgba(0, 255, 136, 0.5)',
+                            borderRadius: '8px'
+                          }}
+                          labelFormatter={(date) => new Date(date).toLocaleDateString()}
+                        />
+                        <Legend />
+                        <Bar dataKey="count" fill="#00ff88" name="Queries" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </>
+              ) : (
+                <Alert severity="info">No query statistics available</Alert>
+              )}
             </Paper>
           </Grid>
 

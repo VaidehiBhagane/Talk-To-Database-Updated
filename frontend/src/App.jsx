@@ -17,26 +17,27 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminNotificationsPage from './pages/AdminNotificationsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import ProfilePage from './pages/ProfilePage';
+import EDAReport from './pages/EDAReport';
 
-// Theme - Black with Neon Effects
-const theme = createTheme({
+// NEW: Create dark theme configuration
+const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#00ff88', // Neon green
+      main: '#00ff88',
       light: '#5dffb8',
       dark: '#00cc6f',
       contrastText: '#000000',
     },
     secondary: {
-      main: '#ff00ff', // Neon pink/magenta
+      main: '#ff00ff',
       light: '#ff5dff',
       dark: '#cc00cc',
       contrastText: '#000000',
     },
     background: {
-      default: '#0a0a0a', // Pure black
-      paper: '#1a1a1a', // Dark gray for cards
+      default: '#0a0a0a',
+      paper: '#1a1a1a',
     },
     text: {
       primary: '#ffffff',
@@ -230,6 +231,113 @@ const theme = createTheme({
   },
 });
 
+// NEW: Create light theme configuration
+const lightTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#00cc6f',
+      light: '#5dffb8',
+      dark: '#009955',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#cc00cc',
+      light: '#ff5dff',
+      dark: '#990099',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#f5f5f5',
+      paper: '#ffffff',
+    },
+    text: {
+      primary: '#1a1a1a',
+      secondary: '#666666',
+    },
+    success: {
+      main: '#00cc6f',
+      light: '#5dffb8',
+    },
+    error: {
+      main: '#d32f2f',
+      light: '#ef5350',
+    },
+    warning: {
+      main: '#ed6c02',
+      light: '#ff9800',
+    },
+    info: {
+      main: '#0288d1',
+      light: '#03a9f4',
+    },
+  },
+  typography: {
+    fontFamily: [
+      'Orbitron',
+      'Rajdhani',
+      'Roboto',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+    ].join(','),
+    h1: {
+      fontWeight: 700,
+    },
+    h2: {
+      fontWeight: 700,
+    },
+    h3: {
+      fontWeight: 600,
+    },
+    h4: {
+      fontWeight: 600,
+    },
+    h5: {
+      fontWeight: 500,
+    },
+    h6: {
+      fontWeight: 500,
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(0, 0, 0, 0.1)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
+            transform: 'translateY(-2px)',
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+          textTransform: 'uppercase',
+          fontWeight: 600,
+          letterSpacing: '1px',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 600,
+          borderRadius: '6px',
+        },
+      },
+    },
+  },
+});
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -254,6 +362,8 @@ const AdminRoute = ({ children }) => {
 
 function App() {
   const [user, setUser] = useState(null);
+  // NEW: Theme mode state
+  const [themeMode, setThemeMode] = useState('dark');
 
   useEffect(() => {
     // Check for existing user session
@@ -261,10 +371,26 @@ function App() {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    
+    // NEW: Load theme preference from localStorage
+    const storedTheme = localStorage.getItem('themeMode');
+    if (storedTheme) {
+      setThemeMode(storedTheme);
+    }
   }, []);
 
+  // NEW: Toggle theme function
+  const toggleTheme = () => {
+    const newMode = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(newMode);
+    localStorage.setItem('themeMode', newMode);
+  };
+
+  // NEW: Select theme based on mode
+  const currentTheme = themeMode === 'dark' ? darkTheme : lightTheme;
+
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider theme={currentTheme}>
       <CssBaseline />
       <Router>
         <Routes>
@@ -278,7 +404,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <Layout><Dashboard user={user} /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><Dashboard user={user} /></Layout>
               </ProtectedRoute>
             }
           />
@@ -286,7 +412,7 @@ function App() {
             path="/chatbot/:buId"
             element={
               <ProtectedRoute>
-                <Layout><ChatbotPage user={user} /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><ChatbotPage user={user} /></Layout>
               </ProtectedRoute>
             }
           />
@@ -294,7 +420,7 @@ function App() {
             path="/visualization"
             element={
               <ProtectedRoute>
-                <Layout><VisualizationPage /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><VisualizationPage /></Layout>
               </ProtectedRoute>
             }
           />
@@ -302,7 +428,15 @@ function App() {
             path="/profile"
             element={
               <ProtectedRoute>
-                <Layout><ProfilePage /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><ProfilePage /></Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/eda/:buId"
+            element={
+              <ProtectedRoute>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><EDAReport /></Layout>
               </ProtectedRoute>
             }
           />
@@ -312,7 +446,7 @@ function App() {
             path="/admin"
             element={
               <AdminRoute>
-                <Layout><AdminDashboard user={user} /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><AdminDashboard user={user} /></Layout>
               </AdminRoute>
             }
           />
@@ -320,7 +454,7 @@ function App() {
             path="/admin/notifications"
             element={
               <AdminRoute>
-                <Layout><AdminNotificationsPage user={user} /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><AdminNotificationsPage user={user} /></Layout>
               </AdminRoute>
             }
           />
@@ -328,7 +462,7 @@ function App() {
             path="/admin/users"
             element={
               <AdminRoute>
-                <Layout><AdminUsersPage user={user} /></Layout>
+                <Layout toggleTheme={toggleTheme} themeMode={themeMode}><AdminUsersPage user={user} /></Layout>
               </AdminRoute>
             }
           />

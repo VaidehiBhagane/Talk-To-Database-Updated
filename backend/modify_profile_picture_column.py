@@ -1,47 +1,41 @@
 """
-Migration script to modify profile_picture column to LONGTEXT
+Script to modify the profile_picture column to LONGTEXT
 """
-import pymysql
+import sys
 import os
-from dotenv import load_dotenv
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-load_dotenv()
+from flask import Flask
+from config import config
+from models import db
 
-# Database configuration
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = int(os.getenv('DB_PORT', 3306))
-DB_USER = os.getenv('DB_USER', 'root')
-DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-DB_NAME = os.getenv('DB_NAME', 'talk_to_database')
+def create_app():
+    """Create Flask app"""
+    app = Flask(__name__)
+    app.config.from_object(config['default'])
+    db.init_app(app)
+    return app
 
-def run_migration():
+def modify_column():
     """Modify profile_picture column to LONGTEXT"""
-    try:
-        # Connect to database
-        connection = pymysql.connect(
-            host=DB_HOST,
-            port=DB_PORT,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_NAME
-        )
-        
-        cursor = connection.cursor()
-        
-        # Modify the column to LONGTEXT
-        cursor.execute("""
-            ALTER TABLE users 
-            MODIFY COLUMN profile_picture LONGTEXT NULL
-        """)
-        connection.commit()
-        print('✓ Profile picture column modified to LONGTEXT successfully')
-        
-        cursor.close()
-        connection.close()
-        
-    except Exception as e:
-        print(f'✗ Migration failed: {str(e)}')
-        raise
+    app = create_app()
+    
+    with app.app_context():
+        try:
+            # Execute raw SQL to modify column
+            sql = "ALTER TABLE users MODIFY COLUMN profile_picture LONGTEXT NULL"
+            db.session.execute(sql)
+            db.session.commit()
+            
+            print("✓ Successfully modified profile_picture column to LONGTEXT")
+            
+        except Exception as e:
+            print(f"✗ Error: {str(e)}")
+            db.session.rollback()
 
 if __name__ == '__main__':
-    run_migration()
+    print("=" * 60)
+    print("Modify Profile Picture Column Script")
+    print("=" * 60)
+    modify_column()
+    print("=" * 60)

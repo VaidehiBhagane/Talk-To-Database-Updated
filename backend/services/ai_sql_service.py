@@ -26,7 +26,7 @@ class AISQLService:
             Dictionary with SQL query and explanation
         """
         try:
-            # Create comprehensive prompt for OpenAI
+            # Create comprehensive prompt for Groq
             prompt = self._create_prompt(natural_query, schema_info, bu_name)
             
             # Call Groq API
